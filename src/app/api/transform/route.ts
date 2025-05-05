@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
 import OpenAI from "openai";
 import { createClient } from "@/utils/supabase/server";
 
@@ -34,16 +33,19 @@ Transform the image into a ${style} style.
       prompt: prompt,
     });
 
-    // Save the image to a file
     const image_base64 = response.data?.[0].b64_json as string;
     const image_bytes = Buffer.from(image_base64, "base64");
-    const outputPath = `public/transformed/${Date.now()}-transformed.png`;
-    fs.writeFileSync(outputPath, image_bytes);
 
-    return NextResponse.json(
-      { image: outputPath.replace("public", "") },
-      { status: 200 }
-    );
+    const contentType = file.type || "image/png";
+    const fileName = file.name || "output.png";
+
+    return new NextResponse(image_bytes, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Content-Disposition": `inline; filename="${fileName}"`,
+      },
+    });
   } catch (error) {
     console.error("Something went wrong:", error);
     return NextResponse.json(

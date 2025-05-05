@@ -10,27 +10,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DownloadCloud, Loader, SparklesIcon } from "lucide-react";
 import { StyleProps } from "@/utils/types";
 import { ComparisonSlider } from "@/components/comparison-slider";
-import { Input } from "./ui/input";
 
 export default function CraftPage() {
   const [style, setStyle] = useState<StyleProps>("Ghibli Studio");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [transformedImage, setTransformedImage] = useState<string | null>(null);
+  const [transformedImage, setTransformedImage] = useState<File | null>(null);
+  const [transformedImagePreview, setTransformedImagePreview] = useState<
+    string | null
+  >(null);
+
   const [isTransforming, setIsTransforming] = useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImage(null);
-      setImagePreview(null);
+      const url = URL.createObjectURL(file);
+      setImagePreview(url);
     }
   };
 
@@ -38,6 +40,9 @@ export default function CraftPage() {
     e.preventDefault();
 
     if (!image || !style) return;
+
+    setTransformedImage(null);
+    setTransformedImagePreview(null);
 
     const formData = new FormData();
     formData.append("file", image);
@@ -50,11 +55,26 @@ export default function CraftPage() {
         body: formData,
       });
 
-      const data = await response.json();
       if (response.ok) {
-        setTransformedImage(data.image);
+        const blob = await response.blob();
+
+        const contentDisposition = response.headers.get("Content-Disposition");
+        let fileName = "output.png";
+
+        if (contentDisposition) {
+          const match = contentDisposition.match(/filename="(.+)"/);
+          if (match && match[1]) {
+            fileName = match[1];
+          }
+        }
+
+        const file = new File([blob], fileName, { type: blob.type });
+
+        setTransformedImage(file);
+        const url = URL.createObjectURL(file);
+        setTransformedImagePreview(url);
       } else {
-        console.error(data.error);
+        console.error("Error transforming image.");
       }
     } catch (err) {
       console.error("Error uploading image:", err);
@@ -64,9 +84,11 @@ export default function CraftPage() {
   };
 
   const handleDownload = async () => {
+    if (!transformedImage || !transformedImagePreview) return;
+
     const link = document.createElement("a");
-    link.href = transformedImage as string;
-    link.download = "imagify-transformed-image.png";
+    link.href = transformedImagePreview as string;
+    link.download = `Imagify ${transformedImage?.name}`;
     link.click();
     link.remove();
   };
@@ -121,18 +143,22 @@ export default function CraftPage() {
         </Button>
       </form>
 
-      {transformedImage && (
+      {imagePreview && transformedImagePreview && (
         <>
           <div className="w-90 sm:w-130">
             <ComparisonSlider
               beforeImage={imagePreview as string}
-              afterImage={transformedImage as string}
+              afterImage={transformedImagePreview as string}
               beforeAlt="Original image"
               afterAlt="Transformed image"
             />
           </div>
 
-          <Button className="text-foreground" onClick={handleDownload}>
+          <Button
+            className="text-foreground"
+            onClick={handleDownload}
+            disabled={!transformedImagePreview}
+          >
             <DownloadCloud /> Download
           </Button>
         </>
