@@ -13,11 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DownloadCloud, Loader, SparklesIcon } from "lucide-react";
-import { StyleProps } from "@/utils/types";
+import { StyleProps, transformationStyles } from "@/utils/constants";
 import { ComparisonSlider } from "@/components/comparison-slider";
 
 export default function CraftPage() {
-  const [style, setStyle] = useState<StyleProps>("Ghibli Studio");
+  const [style, setStyle] = useState<StyleProps>(transformationStyles[0]);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [transformedImage, setTransformedImage] = useState<File | null>(null);
@@ -100,7 +100,7 @@ export default function CraftPage() {
         onSubmit={handleSubmit}
       >
         <Select
-          defaultValue="Ghibli Studio"
+          defaultValue={transformationStyles[0]}
           value={style}
           onValueChange={(value) => setStyle(value as StyleProps)}
         >
@@ -109,10 +109,12 @@ export default function CraftPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectLabel>Style</SelectLabel>
-              <SelectItem value="Ghibli Studio">Ghibli Studio</SelectItem>
-              <SelectItem value="Renaissance">Renaissance</SelectItem>
-              <SelectItem value="Lego">Lego</SelectItem>
+              <SelectLabel>Transformation Style</SelectLabel>
+              {transformationStyles.map((transformationStyle, index) => (
+                <SelectItem key={index} value={transformationStyle}>
+                  {transformationStyle}
+                </SelectItem>
+              ))}
             </SelectGroup>
           </SelectContent>
         </Select>
